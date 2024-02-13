@@ -29,6 +29,12 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     @Override
+    public List<Producto> findAll() {
+        return productoDao.findAll();
+    }
+
+
+    @Override
     public Producto findById(int id) {
         return productoDao.findBy(id); // no necesita get() pq no es un opcional ya que es un método que he creado yo misma. 
     }
@@ -43,7 +49,7 @@ public class ProductoServiceImpl implements ProductoService {
         productoDao.delete(producto);
     }
 
+    }
+
     
 
-
-}
