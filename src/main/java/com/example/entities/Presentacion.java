@@ -3,6 +3,9 @@ package com.example.entities;
 import java.io.Serializable;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -35,7 +38,8 @@ public class Presentacion implements Serializable {
     private String description;
 
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "presentacion") // el mapped va del lado de muchos
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "presentacion", cascade = CascadeType.ALL) // el mapped va del lado de muchos
+    @JsonIgnore
     private List<Producto> productos;
 
 }

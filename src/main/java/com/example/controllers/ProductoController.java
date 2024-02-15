@@ -1,16 +1,30 @@
 package com.example.controllers;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.entities.Producto;
 import com.example.services.ProductoService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -20,15 +34,88 @@ public class ProductoController {
 
     private final ProductoService productoService;
 
-    // método que devuelve todos los productos en formato JSON
+// el método responde a una petición (request) del tipo http://localhost:8080/productos?page=0&size=3
+// (le estoy pidiendo que me de 3 productos con size)
+// si no se especifica pade y size, que devuelva los productos ordenados por el nombre, por ej:
     @GetMapping
-    public ResponseEntity<List<Producto>> findAll() {
+    public ResponseEntity<List<Producto>> findAll(@RequestParam(name = "page", required = false) Integer page, 
+                                                    @RequestParam(name = "size", required = false) Integer size) {
+        
+        ResponseEntity<List<Producto>> responseEntity = null;
+        Sort sortByName = Sort.by("name"); // lo sacamos fuera para poder usarlo en el else sin repetir código
+        List<Producto> productos = new ArrayList<>(); // para poder usarlo en el else
 
-        var productos = productoService.findAll(); 
-        ResponseEntity<List<Producto>> responseEntity = new ResponseEntity<List<Producto>>(productos, HttpStatus.OK);
+        // comprobamos si han enviado page y size
+        if (page !=null && size !=null) {
+            // queremos devolver los datos paginados
+            Pageable pageable = PageRequest.of(page, size, sortByName);
+            Page<Producto> pageProductos = productoService.findAll(pageable);
+            productos = pageProductos.getContent();
+            responseEntity = new ResponseEntity<List<Producto>>(productos, HttpStatus.OK);
 
-        return responseEntity;      
+        } else {
+            // solo ordenamiento
+            productos = productoService.findAll(sortByName);
+            responseEntity = new ResponseEntity<List<Producto>>(productos, HttpStatus.OK);
+        }
+
+        return responseEntity;    
 
     }
+
+
+
+
+// Persisitir un producto (con validación)
+    @PostMapping // pq manda del postman el cuerpo del producto
+    public ResponseEntity<Map<String, Object>> saveProduct(@Valid @RequestBody Producto producto, BindingResult validationResults) {
+
+        Map<String, Object> responseAsMap = new HashMap<>();
+        ResponseEntity<Map<String, Object>> responseEntity = null;
+
+        // Comprobar si el porducto tiene errores
+        if(validationResults.hasErrors()) {
+
+            List<String> errores = new ArrayList<>();
+
+            List<ObjectError> objectErrors = validationResults.getAllErrors();
+
+            //recorremos objectError para sacar el manesaje de cada uno
+            objectErrors.forEach(objectError -> {
+                errores.add(objectError.getDefaultMessage());
+            });
+
+            responseAsMap.put("errores", errores);
+            responseAsMap.put("Producto Mal Formado", producto);
+            responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.BAD_REQUEST);
+
+            return responseEntity;
+
+        }
+
+        // Este return se dará solo cuando no haya errores en el producto
+        // por tanto persisitmos el producto
+        try {
+
+            Producto productoPersistido = productoService.save(producto);
+            String succesMessage = "El producto se ha guardado correctamente";
+            responseAsMap.put("Succes Message: ", succesMessage);
+            responseAsMap.put("Producto guardado", productoPersistido);
+            responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.CREATED);
+            
+        } catch (DataAccessException e) {
+            // por ejemplo, el producto está bien formado, pero se cae el servidor
+
+            String error = "Se ha producido un error al guardar y la causa más probable es: " + e.getMostSpecificCause();
+            responseAsMap.put("Error: ", error);
+            responseAsMap.put("Producto que se ha intentado guardar", producto);
+            responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.INTERNAL_SERVER_ERROR);
+
+        }
+
+        return responseEntity;
+
+    }
+
 
 }
