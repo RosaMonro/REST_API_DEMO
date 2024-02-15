@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -205,11 +206,10 @@ public class ProductoController {
                 responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.NOT_FOUND);
             }
 
-
         } catch (DataAccessException e) {
 
             String errorGrave = "Se ha producido un error al buscar el producto con id " 
-            + idProducto + ", y la causa más problales es " + e.getMostSpecificCause();
+                            + idProducto + ", y la causa más problales es " + e.getMostSpecificCause();
 
             responseAsMap.put("errorGrave", errorGrave);
             responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -217,6 +217,35 @@ public class ProductoController {
         }
 
         return responseEntity;
+    }
+
+
+
+
+// Eliminar un procducto por el ID
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> deleteProductoById(@PathVariable(name = "id", required = true) Integer idProducto) {
+
+        Map<String, Object> responseAsMap = new HashMap<>();
+        ResponseEntity<Map<String, Object>> responseEntity = null;
+
+        try {
+            
+            productoService.delete(productoService.findById(idProducto));
+            String successMessage = "Porducto con id " + idProducto + "eliminado correctamente.";
+            responseAsMap.put("successMessage", successMessage);
+            responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.OK);
+
+        } catch (DataAccessException e) {
+
+            String errorGrave = "Se ha producido un error al eliminar el producto con id " 
+                                + idProducto + ", y la causa más problales es " + e.getMostSpecificCause();
+            responseAsMap.put("errorGrave", errorGrave);
+            responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.INTERNAL_SERVER_ERROR);
+
+        }
+
+    return responseEntity;
     }
 
 }
