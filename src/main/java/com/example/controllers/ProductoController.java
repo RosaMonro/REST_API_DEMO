@@ -232,7 +232,7 @@ public class ProductoController {
         try {
             
             productoService.delete(productoService.findById(idProducto));
-            String successMessage = "Porducto con id " + idProducto + "eliminado correctamente.";
+            String successMessage = "Porducto con id " + idProducto + " eliminado correctamente.";
             responseAsMap.put("successMessage", successMessage);
             responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.OK);
 
@@ -245,7 +245,7 @@ public class ProductoController {
 
         }
 
-    return responseEntity;
+        return responseEntity;
     }
 
 }
