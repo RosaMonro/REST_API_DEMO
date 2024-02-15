@@ -1,5 +1,6 @@
 package com.example.controllers;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -122,8 +123,7 @@ public class ProductoController {
 
 
 
-
-    // Actualizar un producto (con validación)
+// Actualizar un producto (con validación)
     @PutMapping("/{id}") // le mando un endpoint con el id que se va a actualizar
     public ResponseEntity<Map<String, Object>> updateProduct(@Valid 
                                                     @RequestBody Producto producto, BindingResult validationResults, 
@@ -180,6 +180,43 @@ public class ProductoController {
 
 
 
-    
+// Metodo que recupera un producto por el id
+@GetMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> findProductoById(@PathVariable(name = "id", required = true) Integer idProducto) throws IOException {
+
+        Map<String, Object> responseAsMap = new HashMap<>();
+        ResponseEntity<Map<String, Object>> responseEntity = null;
+
+        try {
+            
+            Producto producto = productoService.findById(idProducto);
+            // Podríamos dejarlo aquí,al ser una api rest, 
+            // ademá stenemos que devolver un mensaje sobre el estado.
+
+            if(producto != null) {
+                String successMessage = "Producto con id " + idProducto + " encontrado.";
+                responseAsMap.put("successMessage", successMessage);
+                responseAsMap.put("producto", producto);
+                responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.OK);
+
+            } else {
+                String errorMessage = "Producto con id " + idProducto + " no encontrado.";
+                responseAsMap.put("errorMessage", errorMessage);
+                responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.NOT_FOUND);
+            }
+
+
+        } catch (DataAccessException e) {
+
+            String errorGrave = "Se ha producido un error al buscar el producto con id " 
+            + idProducto + ", y la causa más problales es " + e.getMostSpecificCause();
+
+            responseAsMap.put("errorGrave", errorGrave);
+            responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.INTERNAL_SERVER_ERROR);
+
+        }
+
+        return responseEntity;
+    }
 
 }
