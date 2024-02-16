@@ -55,6 +55,8 @@ public class Producto implements Serializable {
     @Min(value = 0, message = "El precio no puede ser negatovo")
     private double price;
 
+    private String imagen;
+
 
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REFRESH)
     //@JsonIgnore

@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,9 +24,13 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.entities.Producto;
+import com.example.helpers.FileUploadUtil;
+import com.example.model.FileUploadResponse;
 import com.example.services.ProductoService;
 
 import jakarta.validation.Valid;
@@ -37,6 +42,7 @@ import lombok.RequiredArgsConstructor;
 public class ProductoController {
 
     private final ProductoService productoService;
+    private final FileUploadUtil fileUploadUtil;
 
 // el método responde a una petición (request) del tipo http://localhost:8080/productos?page=0&size=3
 // (le estoy pidiendo que me de 3 productos con size)
@@ -69,10 +75,26 @@ public class ProductoController {
 
 
 
+ /**
+     * Persiste un producto en la base de datos
+     * @throws IOException
+     * 
+     * */
+    // Guardar (Persistir), un producto, con su presentacion en la base de datos
+    // Para probarlo con POSTMAN: Body -> form-data -> producto -> CONTENT TYPE ->
+    // application/json
+    // no se puede dejar el content type en Auto, porque de lo contrario asume
+    // application/octet-stream
+    // y genera una exception MediaTypeNotSupported
 
 // Persisitir un producto (con validación)
-    @PostMapping // pq manda del postman el cuerpo del producto
-    public ResponseEntity<Map<String, Object>> saveProduct(@Valid @RequestBody Producto producto, BindingResult validationResults) {
+    @PostMapping(consumes = "multipart/form-data") 
+    @Transactional //de springframework
+    public ResponseEntity<Map<String, Object>> saveProduct(
+                                @Valid 
+                                @RequestPart(name = "producto", required = true) Producto producto, 
+                                BindingResult validationResults,
+                                @RequestPart(name = "file", required = false) MultipartFile file) {
 
         Map<String, Object> responseAsMap = new HashMap<>();
         ResponseEntity<Map<String, Object>> responseEntity = null;
@@ -96,6 +118,33 @@ public class ProductoController {
             return responseEntity;
 
         }
+
+        // Comprobamos si nos hay imagen para el producto
+        if (file != null) {
+
+            try {
+                String fileName = file.getOriginalFilename();
+                String fileCode = fileUploadUtil.saveFile(fileName, file);
+                producto.setImagen(fileCode + "-" + fileName);
+
+                // Devolvemos la información relativa al archivo guardado
+                // para lo cual, en una capa model, vamos a crear un record con la info del archivo q vamos a devolver
+                 FileUploadResponse fileUploadResponse = FileUploadResponse
+                       .builder()
+                       .fileName(fileCode + "-" + fileName)
+                       .downloadURI("/productos/downloadFile/" 
+                                 + fileCode + "-" + fileName)
+                       .size(file.getSize())
+                       .build();
+            
+                responseAsMap.put("info de la imagen: ", fileUploadResponse);     
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+
 
         // Este return se dará solo cuando no haya errores en el producto
         // por tanto persisitmos el producto
@@ -247,5 +296,7 @@ public class ProductoController {
 
         return responseEntity;
     }
+
+
 
 }
