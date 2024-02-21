@@ -52,7 +52,7 @@ public class Producto implements Serializable {
     @Min(value = 0, message = "El stock no puede ser menos de cero")
     private int stock;
 
-    @Min(value = 0, message = "El precio no puede ser negatovo")
+    @Min(value = 0, message = "El precio no puede ser negativo")
     private double price;
 
     private String imagen;
